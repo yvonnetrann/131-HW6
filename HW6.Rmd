@@ -1,0 +1,53 @@
+---
+title: "HW6"
+output: html_document
+---
+```{r}
+library(readr)
+library(ggplot2)
+library(dplyr)
+library(tidymodels)
+library(ISLR)
+library(tidyverse)
+library(glmnet)
+tidymodels_prefer()
+```
+
+
+# Question 1
+```{r setup, include=FALSE}
+library(janitor)
+Pokemon <- read_csv("~/Downloads/homework-6/data/Pokemon.csv")
+Pokemon_clean <- clean_names(Pokemon)
+
+#filter out by specific classes
+Pokemon <- Pokemon_clean %>%
+  filter(type_1 %in% c("Bug", "Fire", "Grass", "Normal", "Water", "Psychic"))
+
+#factor type_1 and legendary
+Pokemon$type_1 <- as.factor(Pokemon$type_1)
+Pokemon$legendary <- as.factor(Pokemon$legendary)
+View(Pokemon)
+```
+
+# Question 2
+```{r}
+
+```
+
+
+# Question 3
+
+# Question 4
+
+# Question 5
+
+# Question 6
+
+# Question 7
+
+# Question 8
+
+# Question 9
+
+# Question 10
