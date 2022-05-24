@@ -11,12 +11,16 @@ library(ISLR)
 library(tidyverse)
 library(glmnet)
 tidymodels_prefer()
+library(rpart.plot)
+library(vip)
+library(janitor)
+library(randomForest)
+library(xgboost)
 ```
 
 
 # Question 1
 ```{r setup, include=FALSE}
-library(janitor)
 Pokemon <- read_csv("~/Downloads/homework-6/data/Pokemon.csv")
 Pokemon_clean <- clean_names(Pokemon)
 
@@ -28,15 +32,47 @@ Pokemon <- Pokemon_clean %>%
 Pokemon$type_1 <- as.factor(Pokemon$type_1)
 Pokemon$legendary <- as.factor(Pokemon$legendary)
 View(Pokemon)
+
+#split
+set.seed(458)
+Pokemon_split <- initial_split(Pokemon, strata = "type_1", prop = 0.7)
+Pokemon_train <- training(Pokemon_split)
+Pokemon_test <- testing(Pokemon_split)
+dim(Pokemon_train)
+dim(Pokemon_test)
+
+#folds
+pokemon_folds <- vfold_cv(Pokemon_train, v = 5, strata = "type_1")
+
+#recipe
+pokemon_recipe <- recipe(type_1 ~ legendary + generation + sp_atk + attack + speed + defense + hp + sp_def, Pokemon_train) %>%
+  step_dummy(c(legendary, generation)) %>%
+  step_normalize(all_predictors())
 ```
 
 # Question 2
 ```{r}
-
+library(corrplot)
+Pokemon_train %>%
+  select(is.numeric) %>%
+  cor() %>% 
+  corrplot(method = 'color')
 ```
+In this plot, I have included all the continuous variables in order to see and study dependences or associations between the variables. This will help determine what makes the primary type of a specific Pokemon.
 
+Looking at the relationships, there seems to be a strong positive relationship between total and all of the battle stats understandably, as the total sums up all the stats. However, it can also be noted that defense & sp_def, as well as attack & sp_attack are also relatively correlated. This again also makes sense, as both groups hold variables performing the same functions, but just towards a specific target.
 
 # Question 3
+```{r}
+tree_spec <- decision_tree() %>%
+  set_engine("rpart")
+
+class_tree_spec <- tree_spec %>%
+  set_mode("classification")
+
+class_tree_wf <- workflow() %>%
+  add_model(class_tree_spec %>% set_args(cost_complexity = tune()))
+```
 
 # Question 4
 
