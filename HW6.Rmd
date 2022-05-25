@@ -121,7 +121,7 @@ trees = An integer for # of trees contained in the ensemble
 min_n = An integer for the minimum # of data points in a node that are required for the node to be split further
 
 ```{r}
-rf_spec2 <- rand_forest(mtry = 6, trees = tune(), min_n = tune()) %>%
+rf_spec2 <- rand_forest(mtry = tune(), trees = tune(), min_n = tune()) %>%
   set_engine("ranger", importance = "impurity") %>%
   set_mode("classification")
 
@@ -129,7 +129,7 @@ class_tree_wf2 <- workflow() %>%
   add_recipe(pokemon_recipe) %>%
   add_model(rf_spec2)
 
-grid2 = 8
+grid2 = grid_regular(mtry(range=c(1,8)), trees(range=c(1,8)), min_n(range=c(1,8)),levels = 8)
 ```
 Mtry should not be smaller than 1 or greater than 8 because the RF is based on a subset of the total number of predictors p (p/3). If you set mtry = 8, then you may see a huge variation in RMSEP between the different RF.
 
@@ -145,7 +145,7 @@ tune_res2 <- tune_grid(
 autoplot(tune_res2)
 
 ```
-It appears as if trees over 1500 with minimal node sizes ranging from 0-25 seem to yield the best performance.
+It appears as if the higher number of trees, the better performing the roc_auc. In all of the minimal node sizes, the higher number of trees continue to yield the best performance.
 
 # Question 7
 ```{r}
@@ -153,7 +153,7 @@ arrange(collect_metrics(tune_res2))
 best <- select_best(tune_res2, metric = "roc_auc")
 best
 ```
-The roc_auc of my best performing random forest model is .7427192.
+The roc_auc of my best performing random forest model is that of mtry =4, trees = 7, and min_n = 4; 0.7316887	
 
 # Question 8
 ```{r}
@@ -161,7 +161,34 @@ vip(class_tree_fit)
 ```
 
 # Question 9
+```{r}
+boost_spec <- boost_tree(trees=c(10,2000), tree_depth = 4) %>%
+  set_engine("xgboost") %>%
+  set_mode("classification")
 
+grid3 = grid_regular(trees(range=c(10,2000)), levels = 10)
+
+class_tree_wf3 <- workflow() %>%
+  add_recipe(pokemon_recipe) %>%
+  add_model(boost_spec)
+
+tune_res3 <- tune_grid(
+  class_tree_wf3,
+  resamples = pokemon_folds,
+  grid = grid3,
+  metrics = metric_set(roc_auc)
+)
+
+autoplot(tune_res3)
+
+arrange(collect_metrics(tune_res3))
+best <- select_best(tune_res2, metric = "roc_auc")
+best
+```
 
 
 # Question 10
+```{r}
+
+```
+
