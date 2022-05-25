@@ -16,6 +16,7 @@ library(vip)
 library(janitor)
 library(randomForest)
 library(xgboost)
+library(ranger)
 ```
 
 
@@ -54,7 +55,7 @@ pokemon_recipe <- recipe(type_1 ~ legendary + generation + sp_atk + attack + spe
 ```{r}
 library(corrplot)
 Pokemon_train %>%
-  select(is.numeric) %>%
+  select(where(is.numeric)) %>%
   cor() %>% 
   corrplot(method = 'color')
 ```
@@ -70,20 +71,97 @@ tree_spec <- decision_tree() %>%
 class_tree_spec <- tree_spec %>%
   set_mode("classification")
 
+class_tree_fit <- class_tree_spec %>%
+  fit(type_1 ~ legendary + generation + sp_atk + attack + speed + defense + hp + sp_def, data=Pokemon_train)
+
 class_tree_wf <- workflow() %>%
-  add_model(class_tree_spec %>% set_args(cost_complexity = tune()))
+  add_model(class_tree_spec %>% set_args(cost_complexity = tune())) %>%
+  add_formula(type_1 ~ legendary + generation + sp_atk + attack + speed + defense + hp + sp_def)
+
+poke_grid <- grid_regular(cost_complexity(range = c(-3, -1)), levels = 10)
+
+tune_res <- tune_grid(
+  class_tree_wf, 
+  resamples = pokemon_folds, 
+  grid = poke_grid, 
+  metrics = metric_set(roc_auc)
+)
+
+autoplot(tune_res)
 ```
 
 # Question 4
+```{r}
+arrange(collect_metrics(tune_res))
+best <- select_best(tune_res, metric = "roc_auc")
+best
+
+```
+The roc_auc of the best-performing pruned decision tree on the folds is 0.6388230.	
 
 # Question 5
+```{r}
+tree_spec <- decision_tree() %>%
+  set_engine("rpart")
+
+class_tree_fit %>%
+  extract_fit_engine() %>%
+  rpart.plot(roundint=FALSE)
+
+```
+
+
+```{r}
+rf_spec <- rand_forest(mtry = tune(), trees = tune(), min_n = tune()) %>%
+  set_engine("ranger", importance = "impurity") %>%
+  set_mode("classification")
+```
+mtry = An integer for # of predictors that will be randomly sampled at each split when creating the tree models
+trees = An integer for # of trees contained in the ensemble
+min_n = An integer for the minimum # of data points in a node that are required for the node to be split further
+
+```{r}
+rf_spec2 <- rand_forest(mtry = 6, trees = tune(), min_n = tune()) %>%
+  set_engine("ranger", importance = "impurity") %>%
+  set_mode("classification")
+
+class_tree_wf2 <- workflow() %>%
+  add_recipe(pokemon_recipe) %>%
+  add_model(rf_spec2)
+
+grid2 = 8
+```
+Mtry should not be smaller than 1 or greater than 8 because the RF is based on a subset of the total number of predictors p (p/3). If you set mtry = 8, then you may see a huge variation in RMSEP between the different RF.
 
 # Question 6
+``` {r}
+tune_res2 <- tune_grid(
+  class_tree_wf2,
+  resamples = pokemon_folds,
+  grid = grid2,
+  metrics = metric_set(roc_auc)
+)
+
+autoplot(tune_res2)
+
+```
+It appears as if trees over 1500 with minimal node sizes ranging from 0-25 seem to yield the best performance.
 
 # Question 7
+```{r}
+arrange(collect_metrics(tune_res2))
+best <- select_best(tune_res2, metric = "roc_auc")
+best
+```
+The roc_auc of my best performing random forest model is .7427192.
 
 # Question 8
+```{r}
+vip(class_tree_fit)
+```
 
 # Question 9
+
+
 
 # Question 10
