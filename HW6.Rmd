@@ -150,8 +150,8 @@ It appears as if the higher number of trees, the better performing the roc_auc. 
 # Question 7
 ```{r}
 arrange(collect_metrics(tune_res2))
-best <- select_best(tune_res2, metric = "roc_auc")
-best
+best2 <- select_best(tune_res2, metric = "roc_auc")
+best2
 ```
 The roc_auc of my best performing random forest model is that of mtry =4, trees = 7, and min_n = 4; 0.7316887	
 
@@ -162,9 +162,11 @@ vip(class_tree_fit)
 
 # Question 9
 ```{r}
-boost_spec <- boost_tree(trees=c(10,2000), tree_depth = 4) %>%
+boost_spec <- boost_tree(trees= tune(), tree_depth = 4) %>%
   set_engine("xgboost") %>%
   set_mode("classification")
+
+boost_fit <- fit(boost_spec, type_1 ~ ., data = Pokemon_train)
 
 grid3 = grid_regular(trees(range=c(10,2000)), levels = 10)
 
@@ -182,13 +184,16 @@ tune_res3 <- tune_grid(
 autoplot(tune_res3)
 
 arrange(collect_metrics(tune_res3))
-best <- select_best(tune_res2, metric = "roc_auc")
-best
+best3 <- select_best(tune_res2, metric = "roc_auc")
+best3
 ```
-
+The roc_auc of the best-performing boosted tree model on the folds is that of model 244.
 
 # Question 10
 ```{r}
+values <- c()
+
+
 
 ```
 
